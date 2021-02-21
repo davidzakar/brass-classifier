@@ -141,20 +141,11 @@ plt.title('Training and Validation Loss')
 # uncomment this if you want to see the plots for assessing training
 #plt.show()
 
-# replace this with your own test image
-testbrass_path="./data/gfl-test-case2.jpg"
+model.save('saved_model/bc_model')
 
-img = keras.preprocessing.image.load_img(
-            testbrass_path, target_size=(img_height, img_width)
-            )
+# save the labels!
 
-img_array = keras.preprocessing.image.img_to_array(img)
-img_array = tf.expand_dims(img_array, 0) # Create a batch
+a_file = open("saved_model/bc_model/classes.txt", "w")
+np.savetxt(a_file, class_names, delimiter=" ", newline = "\n", fmt="%s")
 
-predictions = model.predict(img_array)
-score = tf.nn.softmax(predictions[0])
-
-print(
-            "This image most likely belongs to {} with a {:.2f} percent confidence."
-                .format(class_names[np.argmax(score)], 100 * np.max(score))
-)
+a_file.close()

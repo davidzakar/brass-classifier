@@ -16,14 +16,16 @@ config = tf.compat.v1.ConfigProto( device_count = {'GPU': 1 , 'CPU': 4} )
 sess = tf.compat.v1.Session(config=config) 
 K.set_session(sess)
 
-data_dir = pathlib.Path("./data/knownCasings/")
+data_dir = pathlib.Path("./data/knownCasings_raspicam/")
 
 image_count = len(list(data_dir.glob('*/*.jpg')))
 print(image_count)
 
 batch_size = 8 
-img_height = 383
-img_width = 383
+img_height = 960
+img_width = 600
+crop_x=288
+crop_y=275
 
 train_ds = tf.keras.preprocessing.image_dataset_from_directory(
         data_dir,
@@ -51,40 +53,12 @@ val_ds = val_ds.cache().prefetch(buffer_size=AUTOTUNE)
 
 normalization_layer = layers.experimental.preprocessing.Rescaling(1./255)
 
-num_classes = 17
-
-model = Sequential([
-      layers.experimental.preprocessing.Rescaling(1./255, input_shape=(img_height, img_width, 3)),
-      layers.Conv2D(16, 3, padding='same', activation='relu'),
-      layers.MaxPooling2D(),
-      layers.Conv2D(32, 3, padding='same', activation='relu'),
-      layers.MaxPooling2D(),
-      layers.Conv2D(64, 3, padding='same', activation='relu'),
-      layers.MaxPooling2D(),
-      layers.Flatten(),
-      layers.Dense(128, activation='relu'),
-      layers.Dense(num_classes)
-])
-
-model.compile(optimizer='adam',
-        loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
-        metrics=['accuracy'])
-
-model.summary()
-
-epochs=10
-history = model.fit(
-        train_ds,
-        validation_data=val_ds,
-        epochs=epochs
-)
+num_classes = len(class_names)
 
 # augmentation
 data_augmentation = keras.Sequential([
-    layers.experimental.preprocessing.RandomFlip("horizontal",
-        input_shape=(img_height,
-            img_width,
-            3)),
+    layers.experimental.preprocessing.CenterCrop(crop_y, crop_x, input_shape=(img_height,img_width,3)),
+    layers.experimental.preprocessing.RandomFlip("horizontal"),
     layers.experimental.preprocessing.RandomRotation(0.1),
     layers.experimental.preprocessing.RandomZoom(0.1),
 ])
@@ -93,15 +67,17 @@ data_augmentation = keras.Sequential([
 model = Sequential([
     data_augmentation,
     layers.experimental.preprocessing.Rescaling(1./255),
-    layers.Conv2D(16, 3, padding='same', activation='relu'),
+    layers.SeparableConv2D(16, 5, padding='same', activation='relu'),
     layers.MaxPooling2D(),
-    layers.Conv2D(32, 3, padding='same', activation='relu'),
+    layers.SeparableConv2D(32, 5, padding='same', activation='relu'),
     layers.MaxPooling2D(),
-    layers.Conv2D(64, 3, padding='same', activation='relu'),
+    layers.SeparableConv2D(64, 5, padding='same', activation='relu'),
+    layers.MaxPooling2D(),
+    layers.SeparableConv2D(128, 5, padding='same', activation='relu'),
     layers.MaxPooling2D(),
     layers.Dropout(0.2),
     layers.Flatten(),
-    layers.Dense(128, activation='relu'),
+    layers.Dense(64, activation='relu'),
     layers.Dense(num_classes)
 ])
 
@@ -111,7 +87,7 @@ model.compile(optimizer='adam',
 
 model.summary()
 
-epochs = 25
+epochs = 30
 history = model.fit(
         train_ds,
         validation_data=val_ds,
@@ -139,7 +115,7 @@ plt.plot(epochs_range, val_loss, label='Validation Loss')
 plt.legend(loc='upper right')
 plt.title('Training and Validation Loss')
 # uncomment this if you want to see the plots for assessing training
-#plt.show()
+plt.show()
 
 model.save('saved_model/bc_model')
 

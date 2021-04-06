@@ -15,22 +15,26 @@ import time
 
 class_names=np.genfromtxt('saved_model/bc_model/classes.txt', dtype='str', delimiter="\n")
 
-img_height=383
-img_width=383
+img_height=960
+img_width=600
+crop_x=575
+crop_y=550
+
+cropper = tf.keras.layers.experimental.preprocessing.CenterCrop(height=crop_y, width=crop_x)
 
 model = tf.keras.models.load_model('saved_model/bc_model')
 
 # replace this with your own test image
-testbrass_path="./data/gfl-test-case2.jpg"
+testbrass_path="./data/gfl-test-case4.jpg"
 
 start_time=time.time() * 1000
 
 img = keras.preprocessing.image.load_img(
             testbrass_path, target_size=(img_height, img_width)
             )
-
 img_array = keras.preprocessing.image.img_to_array(img)
 img_array = tf.expand_dims(img_array, 0) # Create a batch
+img_array = cropper(img_array)
 
 predictions = model.predict(img_array)
 score = tf.nn.softmax(predictions[0])

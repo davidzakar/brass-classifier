@@ -1,7 +1,9 @@
+import io
 import matplotlib.pyplot as plt
 import numpy as np
 import os
 import PIL
+from PIL import Image
 import tensorflow as tf
 
 from tensorflow import keras
@@ -26,12 +28,14 @@ model = tf.keras.models.load_model('saved_model/bc_model')
 
 # read the stream from the camera into a PIL file
 stream = io.BytesIO()
-camera.capture(stream, format='jpeg')
-img = Image.open(stream)
-
+camera.capture(stream,format='jpeg')
+#img = Image.open(stream).convert('L').resize((img_width, img_height), Image.ANTIALIAS)
+image = Image.open(stream)
+image = image.resize((383,383), Image.NEAREST)
+image = keras.preprocessing.image.img_to_array(image)
 start_time=time.time() * 1000
 
-img=keras.preprocessing.image.smart_resize(img, (img_height,img_width))
+img=keras.preprocessing.image.smart_resize(image, (img_height,img_width))
 
 img_array = keras.preprocessing.image.img_to_array(img)
 img_array = tf.expand_dims(img_array, 0) # Create a batch
